@@ -1,50 +1,69 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
+  <meta charset="UTF-8">
   <title>Tic Tac Toe</title>
   <style>
     body {
-      background-color: #121212;
-      color: #f0f0f0;
+      background: #121212;
+      color: #fff;
       font-family: sans-serif;
-      margin: 0;
-      padding: 0;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      height: 100vh;
+      margin: 0;
+      padding: 20px;
+    }
+
+    #login {
+      margin-bottom: 20px;
     }
 
     #board {
       display: grid;
       grid-template-columns: repeat(3, 100px);
-      gap: 5px;
+      grid-gap: 5px;
     }
 
     .cell {
       width: 100px;
       height: 100px;
+      background: #222;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       font-size: 2em;
-      text-align: center;
-      line-height: 100px;
-      border: 1px solid #ccc;
       cursor: pointer;
-      background-color: #1e1e1e;
-      color: #ffffff;
+      transition: background 0.3s;
     }
 
-    #status {
-      margin-bottom: 20px;
-      font-size: 1.2em;
+    .cell:hover {
+      background: #333;
+    }
+
+    @media (max-width: 600px) {
+      .cell {
+        width: 70px;
+        height: 70px;
+        font-size: 1.5em;
+      }
+
+      #board {
+        grid-template-columns: repeat(3, 70px);
+      }
     }
   </style>
 </head>
 
 <body>
-  <div id="status">Connecting...</div>
+  <div id="login">
+    Username: <input id="username" /> Room: <input id="room" />
+    <button id="joinBtn">Join</button>
+  </div>
+  <div id="status"></div>
   <div id="board"></div>
+  <audio id="clickSound" src="https://www.soundjay.com/buttons/sounds/button-3.mp3" preload="auto"></audio>
   <script src="client.js"></script>
 </body>
 

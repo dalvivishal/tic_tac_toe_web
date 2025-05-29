@@ -1,59 +1,67 @@
-const socket = new WebSocket(`ws://${location.host}`);
+
 const boardDiv = document.getElementById('board');
 const statusDiv = document.getElementById('status');
-let symbol = localStorage.getItem('symbol') || '';
-let yourTurn = false;
+const joinBtn = document.getElementById('joinBtn');
+const usernameInput = document.getElementById('username');
+const roomInput = document.getElementById('room');
+const clickSound = document.getElementById('clickSound');
 
+let socket = null;
+let yourTurn = false;
+let symbol = '';
 let clientId = localStorage.getItem('clientId');
 if (!clientId) {
-  clientId = crypto.randomUUID();
+  clientId = Math.random().toString(36).substr(2, 9);
   localStorage.setItem('clientId', clientId);
 }
 
-socket.addEventListener('open', () => {
-  socket.send(JSON.stringify({ type: 'join', clientId }));
-});
+joinBtn.onclick = () => {
+  const username = usernameInput.value.trim();
+  const roomId = roomInput.value.trim();
+  if (!username || !roomId) return;
 
-socket.onmessage = (e) => {
-  const msg = JSON.parse(e.data);
+  socket = new WebSocket(`ws://${location.host}`);
+  socket.onopen = () => {
+    socket.send(JSON.stringify({ type: 'join', clientId, username, roomId }));
+    statusDiv.innerText = 'Waiting for opponent...';
+  };
 
-  if (msg.type === 'start') {
-    symbol = msg.symbol;
-    localStorage.setItem('symbol', symbol);
-    setStatus('Waiting for opponent...');
-  }
+  socket.onmessage = (event) => {
+    const msg = JSON.parse(event.data);
+    if (msg.type === 'start') {
+      symbol = msg.symbol;
+    } else if (msg.type === 'update') {
+      renderBoard(msg.board);
+      yourTurn = msg.yourTurn;
+      const nameInfo = `You are "${symbol}"`;
+      if (msg.winner) {
+        statusDiv.innerText = msg.winner === 'draw' ? 'Draw!' : `${msg.winner} wins!`;
+      } else {
+        statusDiv.innerText = `${nameInfo} — ${yourTurn ? 'Your turn' : 'Opponent\'s turn'}`;
+      }
+    }
+  };
 
-  if (msg.type === 'update') {
-    updateBoard(msg.board);
-    yourTurn = msg.yourTurn;
-    setStatus(`You are ${msg.symbol}. ${msg.winner ? winnerMessage(msg.winner) : (yourTurn ? 'Your turn' : "Opponent's turn")}`);
-  }
-
-  if (msg.type === 'reset') {
-    boardDiv.innerHTML = '';
-    setStatus('Opponent disconnected. Waiting...');
-  }
+  socket.onclose = () => {
+    statusDiv.innerText = 'Disconnected';
+  };
 };
 
-function updateBoard(board) {
+function renderBoard(board) {
   boardDiv.innerHTML = '';
   board.forEach((cell, index) => {
     const div = document.createElement('div');
     div.className = 'cell';
-    div.textContent = cell || '';
-    div.onclick = () => {
-      if (!cell && yourTurn) {
-        socket.send(JSON.stringify({ type: 'move', index }));
-      }
-    };
+    if (cell) {
+      div.innerText = cell;
+    } else {
+      div.onclick = () => {
+        if (yourTurn && socket?.readyState === WebSocket.OPEN) {
+          socket.send(JSON.stringify({ type: 'move', index }));
+          clickSound.play();
+        }
+      };
+    }
     boardDiv.appendChild(div);
   });
-}
-
-function setStatus(text) {
-  statusDiv.textContent = text;
-}
-
-function winnerMessage(winner) {
-  return winner === 'draw' ? "It's a draw!" : `${winner} wins!`;
 }

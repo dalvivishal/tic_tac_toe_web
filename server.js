@@ -1,3 +1,4 @@
+
 const WebSocket = require('ws');
 const http = require('http');
 const fs = require('fs');
@@ -18,11 +19,17 @@ const server = http.createServer((req, res) => {
 
 const wss = new WebSocket.Server({ server });
 
-let players = [];
-let gameState = Array(9).fill(null);
-let currentPlayer = 0;
-let startingPlayer = 0;
-const clients = new Map();
+let rooms = new Map();
+
+function createRoom(roomId) {
+  return {
+    players: [],
+    gameState: Array(9).fill(null),
+    currentPlayer: 0,
+    startingPlayer: 0,
+    lastWinner: null
+  };
+}
 
 function checkWinner(board) {
   const lines = [
@@ -38,14 +45,17 @@ function checkWinner(board) {
   return board.every(cell => cell) ? 'draw' : null;
 }
 
-function broadcastGameState(winner = null) {
-  players.forEach((p, index) => {
+function broadcastGameState(roomId, winner = null) {
+  const room = rooms.get(roomId);
+  if (!room) return;
+  room.players.forEach((p, index) => {
     p.ws.send(JSON.stringify({
       type: 'update',
-      board: gameState,
-      yourTurn: index === currentPlayer,
+      board: room.gameState,
+      yourTurn: index === room.currentPlayer,
       symbol: index === 0 ? 'X' : 'O',
       winner,
+      usernames: room.players.map(pl => pl.username)
     }));
   });
 }
@@ -60,60 +70,65 @@ wss.on('connection', (ws) => {
     }
 
     if (message.type === 'join') {
-      const { clientId } = message;
-      clients.set(clientId, ws);
-
-      let playerIndex = players.findIndex(p => p.clientId === clientId);
-
-      if (playerIndex === -1 && players.length < 2) {
-        playerIndex = players.length;
-        players.push({ ws, clientId });
-      } else if (playerIndex !== -1) {
-        players[playerIndex].ws = ws;
-      } else {
-        ws.send(JSON.stringify({ type: 'full' }));
-        return ws.close();
+      const { clientId, username, roomId } = message;
+      if (!rooms.has(roomId)) {
+        rooms.set(roomId, createRoom(roomId));
       }
 
-      ws.send(JSON.stringify({ type: 'start', symbol: playerIndex === 0 ? 'X' : 'O' }));
-      ws.playerIndex = playerIndex;
+      const room = rooms.get(roomId);
+      let playerIndex = room.players.findIndex(p => p.clientId === clientId);
+      if (playerIndex === -1 && room.players.length < 2) {
+        playerIndex = room.players.length;
+        room.players.push({ ws, clientId, username });
+      } else if (playerIndex !== -1) {
+        room.players[playerIndex].ws = ws;
+        room.players[playerIndex].username = username;
+      } else {
+        return ws.send(JSON.stringify({ type: 'full' }));
+      }
 
-      if (players.length === 2) broadcastGameState();
+      ws.playerIndex = playerIndex;
+      ws.roomId = roomId;
+      ws.send(JSON.stringify({ type: 'start', symbol: playerIndex === 0 ? 'X' : 'O' }));
+
+      if (room.players.length === 2) {
+        broadcastGameState(roomId);
+      }
     }
 
     if (message.type === 'move') {
       const { index } = message;
-      const playerIndex = ws.playerIndex;
+      const room = rooms.get(ws.roomId);
+      if (!room || room.players.length < 2) return;
+      if (room.players[room.currentPlayer].ws !== ws || room.gameState[index]) return;
 
-      if (playerIndex !== currentPlayer || gameState[index] || players.length < 2) return;
-
-      gameState[index] = playerIndex === 0 ? 'X' : 'O';
-      const winner = checkWinner(gameState);
-
+      room.gameState[index] = room.currentPlayer === 0 ? 'X' : 'O';
+      const winner = checkWinner(room.gameState);
       if (winner) {
-        broadcastGameState(winner);
+        room.lastWinner = winner;
+        broadcastGameState(ws.roomId, winner);
         setTimeout(() => {
-          gameState = Array(9).fill(null);
+          room.gameState = Array(9).fill(null);
           if (winner === 'draw') {
-            startingPlayer = 1 - currentPlayer;
+            room.startingPlayer = 1 - room.currentPlayer;
           } else {
-            startingPlayer = (winner === 'X') ? 0 : 1;
+            room.startingPlayer = winner === 'X' ? 0 : 1;
           }
-          currentPlayer = startingPlayer;
-          broadcastGameState();
-        }, 3000);
+          room.currentPlayer = room.startingPlayer;
+          broadcastGameState(ws.roomId);
+        }, 2000);
       } else {
-        currentPlayer = 1 - currentPlayer;
-        broadcastGameState();
+        room.currentPlayer = 1 - room.currentPlayer;
+        broadcastGameState(ws.roomId);
       }
     }
   });
 
   ws.on('close', () => {
-    players = players.filter(p => p.ws !== ws);
-    gameState = Array(9).fill(null);
-    currentPlayer = 0;
-    players.forEach(p => p.ws.send(JSON.stringify({ type: 'reset' })));
+    const room = rooms.get(ws.roomId);
+    if (!room) return;
+    room.players = room.players.filter(p => p.ws !== ws);
+    if (room.players.length === 0) rooms.delete(ws.roomId);
   });
 });
 
