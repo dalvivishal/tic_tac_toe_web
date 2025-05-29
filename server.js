@@ -122,6 +122,15 @@ wss.on('connection', (ws) => {
         broadcastGameState(ws.roomId);
       }
     }
+
+    if (message.type === 'restart') {
+      const room = rooms.get(ws.roomId);
+      if (!room || room.players.length < 2) return;
+
+      room.gameState = Array(9).fill(null);
+      room.currentPlayer = room.startingPlayer;
+      broadcastGameState(ws.roomId);
+    }
   });
 
   ws.on('close', () => {

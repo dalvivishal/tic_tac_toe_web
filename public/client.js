@@ -1,10 +1,11 @@
-
+// client.js
 const boardDiv = document.getElementById('board');
 const statusDiv = document.getElementById('status');
 const joinBtn = document.getElementById('joinBtn');
 const usernameInput = document.getElementById('username');
 const roomInput = document.getElementById('room');
 const clickSound = document.getElementById('clickSound');
+const restartBtn = document.getElementById('restartBtn');
 
 let socket = null;
 let yourTurn = false;
@@ -20,7 +21,7 @@ joinBtn.onclick = () => {
   const roomId = roomInput.value.trim();
   if (!username || !roomId) return;
 
-  socket = new WebSocket(`ws://${location.host}`);
+  socket = new WebSocket('ws://localhost:3000'); // Use your server's IP here
   socket.onopen = () => {
     socket.send(JSON.stringify({ type: 'join', clientId, username, roomId }));
     statusDiv.innerText = 'Waiting for opponent...';
@@ -36,8 +37,11 @@ joinBtn.onclick = () => {
       const nameInfo = `You are "${symbol}"`;
       if (msg.winner) {
         statusDiv.innerText = msg.winner === 'draw' ? 'Draw!' : `${msg.winner} wins!`;
+        if (msg.winner !== 'draw') launchConfetti();
+        restartBtn.style.display = 'inline-block';
       } else {
         statusDiv.innerText = `${nameInfo} — ${yourTurn ? 'Your turn' : 'Opponent\'s turn'}`;
+        restartBtn.style.display = 'none';
       }
     }
   };
@@ -45,6 +49,12 @@ joinBtn.onclick = () => {
   socket.onclose = () => {
     statusDiv.innerText = 'Disconnected';
   };
+};
+
+restartBtn.onclick = () => {
+  if (socket?.readyState === WebSocket.OPEN) {
+    socket.send(JSON.stringify({ type: 'restart' }));
+  }
 };
 
 function renderBoard(board) {
@@ -64,4 +74,30 @@ function renderBoard(board) {
     }
     boardDiv.appendChild(div);
   });
+}
+
+function launchConfetti() {
+  if (window.confetti) {
+    const duration = 2 * 1000;
+    const end = Date.now() + duration;
+
+    (function frame() {
+      confetti({
+        particleCount: 5,
+        angle: 60,
+        spread: 55,
+        origin: { x: 0 },
+      });
+      confetti({
+        particleCount: 5,
+        angle: 120,
+        spread: 55,
+        origin: { x: 1 },
+      });
+
+      if (Date.now() < end) {
+        requestAnimationFrame(frame);
+      }
+    })();
+  }
 }
