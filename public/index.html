@@ -54,15 +54,81 @@
         grid-template-columns: repeat(3, 70px);
       }
     }
+
+    input,
+    select {
+      background-color: #1e1e1e;
+      color: #fff;
+      border: 1px solid #444;
+      padding: 8px;
+      margin: 5px;
+      border-radius: 4px;
+      font-size: 1em;
+    }
+
+    input:focus,
+    select:focus {
+      outline: none;
+      border-color: #00bcd4;
+      box-shadow: 0 0 5px #00bcd4;
+    }
+
+    button {
+      background-color: #00bcd4;
+      color: #000;
+      border: none;
+      padding: 10px 16px;
+      margin: 5px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 1em;
+      transition: background 0.3s;
+    }
+
+    button:hover {
+      background-color: #00acc1;
+    }
+
+    input.invalid,
+    select.invalid {
+      border-color: #f44336;
+      box-shadow: 0 0 5px #f44336;
+    }
+
+    @keyframes shake {
+      0% {
+        transform: translateX(0);
+      }
+
+      25% {
+        transform: translateX(-5px);
+      }
+
+      50% {
+        transform: translateX(5px);
+      }
+
+      75% {
+        transform: translateX(-5px);
+      }
+
+      100% {
+        transform: translateX(0);
+      }
+    }
+
+    .shake {
+      animation: shake 0.3s ease;
+    }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 </head>
 
 <body>
   <div id="login">
-    Username: <input id="username" />
-    Room ID: <input id="room" />
-    <select id="role">
+    Username: <input id="username" required />
+    Room ID: <input id="room" required />
+    <select id="role" required>
       <option value="create">Create Room</option>
       <option value="join">Join Room</option>
     </select>
@@ -71,13 +137,13 @@
 
   <div id="settings">
     Board Size:
-    <select id="boardSize">
+    <select id="boardSize" required>
       <option value="3">3x3</option>
       <option value="4">4x4</option>
       <option value="5">5x5</option>
     </select>
     Mode:
-    <select id="gameMode">
+    <select id="gameMode" required>
       <option value="normal">Normal</option>
       <option value="advanced">Advanced</option>
     </select>

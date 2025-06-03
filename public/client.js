@@ -23,22 +23,42 @@ joinBtn.onclick = () => {
   const username = usernameInput.value.trim();
   const roomId = roomInput.value.trim();
   const role = roleSelect.value;
-  const boardSize = parseInt(boardSizeSelect.value);
+  const boardSize = boardSizeSelect.value;
   const gameMode = gameModeSelect.value;
-  if (!username || !roomId) return;
 
+  let valid = true;
+
+  // Helper to flag and shake invalid fields
+  function invalidate(el) {
+    el.classList.add('invalid', 'shake');
+    setTimeout(() => el.classList.remove('shake'), 300);
+    valid = false;
+  }
+
+  // Reset old validation
+  [usernameInput, roomInput, roleSelect, boardSizeSelect, gameModeSelect].forEach(el => {
+    el.classList.remove('invalid');
+  });
+
+  if (!username) invalidate(usernameInput);
+  if (!roomId) invalidate(roomInput);
+  if (!role) invalidate(roleSelect);
+  if (!boardSize) invalidate(boardSizeSelect);
+  if (!gameMode) invalidate(gameModeSelect);
+
+  if (!valid) return;
+
+  // Proceed if all fields are valid
   socket = new WebSocket('ws://localhost:3000');
-
   socket.onopen = () => {
-    // Send create or join request
     socket.send(JSON.stringify({
       type: 'join',
       clientId,
       username,
       roomId,
       role,
-      boardSize: role === 'create' ? boardSize : undefined,
-      gameMode: role === 'create' ? gameMode : undefined
+      boardSize: parseInt(boardSize),
+      gameMode
     }));
     statusDiv.innerText = 'Waiting for opponent...';
   };
