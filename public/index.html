@@ -16,8 +16,9 @@
       padding: 20px;
     }
 
-    #login {
-      margin-bottom: 20px;
+    #login,
+    #settings {
+      margin-bottom: 10px;
     }
 
     #board {
@@ -59,16 +60,32 @@
 
 <body>
   <div id="login">
-    Username: <input id="username" /> Room: <input id="room" />
-    <button id="joinBtn">Join</button>
+    Username: <input id="username" />
+    Room ID: <input id="room" />
+    <select id="role">
+      <option value="create">Create Room</option>
+      <option value="join">Join Room</option>
+    </select>
+    <button id="joinBtn">Enter</button>
+  </div>
+
+  <div id="settings">
+    Board Size:
+    <select id="boardSize">
+      <option value="3">3x3</option>
+      <option value="4">4x4</option>
+      <option value="5">5x5</option>
+    </select>
+    Mode:
+    <select id="gameMode">
+      <option value="normal">Normal</option>
+      <option value="advanced">Advanced</option>
+    </select>
   </div>
   <div id="status"></div>
   <div id="board"></div>
   <button id="restartBtn" style="display:none;">Restart</button>
   <audio id="clickSound" src="https://www.soundjay.com/buttons/sounds/button-3.mp3" preload="auto"></audio>
-  <!-- Put this in your <head> or before your custom JS -->
-  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-
   <script src="client.js"></script>
 </body>
 
